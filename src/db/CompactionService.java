@@ -6,7 +6,9 @@ import sstable.SSTable;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -18,6 +20,7 @@ public class CompactionService {
     private final Manifest manifest;
     private final ScheduledExecutorService memtableFlusher;
     private final ScheduledExecutorService compactionRunner;
+    private Map<Integer, Integer> levelMap;
 
     public CompactionService(MemtableService memtableService,
                              Manifest manifest) {
@@ -48,9 +51,17 @@ public class CompactionService {
                     }
                 },
                 0,
-                1000,
+                500,
                 TimeUnit.MILLISECONDS
         );
+
+        // hardcoded
+        levelMap = new HashMap<>();
+        levelMap.put(0, 4);
+        levelMap.put(1, 10);
+        levelMap.put(2, 20);
+        levelMap.put(3, 30);
+        levelMap.put(4, 40);
     }
 
     // Flushes memtables to SSTables, minimizing read blocking. Reads are only blocked during flushQueue removal
@@ -116,6 +127,7 @@ public class CompactionService {
             }
 
             List<SSTable> newTables = compactTables(tablesToCompact);
+
             updateManifest(level, tablesToCompact, newTables);
         }
     }
@@ -125,10 +137,9 @@ public class CompactionService {
         readLock.lock();
         try {
             List<SSTable> currentLevelTables = manifest.getSSTables(level);
-            if (currentLevelTables.size() <= 4) {
+            if (currentLevelTables.size() <= levelMap.get(level)) {
                 return null;
             }
-
             List<SSTable> tablesToMerge = new ArrayList<>(currentLevelTables);
             int nextLevel = level + 1;
             List<SSTable> nextLevelTables = manifest.getSSTables(nextLevel);

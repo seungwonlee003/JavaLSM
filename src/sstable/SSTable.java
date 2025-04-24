@@ -16,6 +16,7 @@ public class SSTable {
     private String minKey;
     private String maxKey;
     private static final int INDEX_INTERVAL = 100;
+    private static final int SSTABLE_SIZE_THRESHOLD = 30;
 
     public SSTable(String filePath) throws IOException {
         this.filePath = filePath;
@@ -138,8 +139,9 @@ public class SSTable {
 
         for (int i = 0; i < iterators.length; i++) {
             if (iterators[i].hasNext()) {
-                SSTableEntry nextEntry = (SSTableEntry) iterators[i].next();
-                queue.offer(new SSTableEntry(new AbstractMap.SimpleEntry<>(nextEntry.key, nextEntry.value), i));
+                Map.Entry<String, String> nextEntry = iterators[i].next();
+                queue.offer(new SSTableEntry(nextEntry, i));
+            } else {
             }
         }
 
@@ -147,6 +149,7 @@ public class SSTable {
         List<Map.Entry<String, String>> buffer = new ArrayList<>();
         long currentSize = 0;
         String lastKey = null;
+        int entryCount = 0;
 
         while (!queue.isEmpty()) {
             SSTableEntry entry = queue.poll();
@@ -157,7 +160,8 @@ public class SSTable {
                 buffer.add(new AbstractMap.SimpleEntry<>(key, value));
                 currentSize += 4 + key.getBytes(StandardCharsets.UTF_8).length +
                         4 + (value != null ? value.getBytes(StandardCharsets.UTF_8).length : 0);
-                if (currentSize >= 64 * 1024 * 1024) {
+                entryCount++;
+                if (currentSize >= SSTABLE_SIZE_THRESHOLD) {
                     newSSTables.add(createSSTableFromBuffer(dataDir, buffer));
                     buffer.clear();
                     currentSize = 0;
@@ -165,24 +169,27 @@ public class SSTable {
             }
             int idx = entry.sstableNumber;
             if (iterators[idx].hasNext()) {
-                SSTableEntry nextEntry = (SSTableEntry) iterators[idx].next();
-                queue.offer(new SSTableEntry(new AbstractMap.SimpleEntry<>(nextEntry.key, nextEntry.value), idx));
+                Map.Entry<String, String> nextEntry = iterators[idx].next();
+                queue.offer(new SSTableEntry(nextEntry, idx));
             }
         }
 
         if (!buffer.isEmpty()) {
             newSSTables.add(createSSTableFromBuffer(dataDir, buffer));
         }
+
         for (SSTableIterator iterator : iterators) {
             iterator.close();
         }
 
         return newSSTables;
     }
+
     private static SSTable createSSTableFromBuffer(String dataDir, List<Map.Entry<String, String>> buffer) throws IOException {
         String filePath = dataDir + "/sstable_" + System.nanoTime() + ".sst";
+        System.out.println("Creating SSTable: " + filePath + " with " + buffer.size() + " entries");
         BloomFilter bloomFilter = new BloomFilter(1000, 3);
-        TreeMap<String, Long> index = new TreeMap<String, Long>();
+        TreeMap<String, Long> index = new TreeMap<>();
         String minKey = null;
         String maxKey = null;
         long offset = 0;
@@ -213,6 +220,7 @@ public class SSTable {
 
                 offset += 4 + keyBytes.length + 4 + valueBytes.length;
                 count++;
+                System.out.println("Wrote to SSTable: key=" + key + ", offset=" + offset);
             }
         } finally {
             file.close();

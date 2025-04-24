@@ -8,9 +8,10 @@ import java.io.IOException;
 public class DB {
     private final MemtableService memtableService;
     private final SSTableService sstableService;
+    private final Manifest manifest;
 
     public DB() throws IOException {
-        Manifest manifest = new Manifest();
+        manifest = new Manifest();
         this.memtableService = new MemtableService();
         this.sstableService = new SSTableService(manifest);
         CompactionService compactionService = new CompactionService(memtableService, manifest);
@@ -28,5 +29,9 @@ public class DB {
 
     public void delete(String key){
         memtableService.delete(key);
+    }
+
+    public void display(){
+        manifest.displayManifestFile();
     }
 }

@@ -107,4 +107,27 @@ public class Manifest {
         levelMap.computeIfAbsent(levelToClear + 1, k -> new ArrayList<>()).addAll(newTables);
         persist();
     }
+
+    public void displayManifestFile() {
+        rwLock.readLock().lock();
+        try {
+            if (levelMap.isEmpty()) {
+                System.out.println("Manifest is empty.");
+                return;
+            }
+            System.out.println("===== SSTables by Level =====");
+            for (Map.Entry<Integer, List<SSTable>> entry : levelMap.entrySet()) {
+                int level = entry.getKey();
+                List<SSTable> sstables = entry.getValue();
+                System.out.println("Level " + level + ":");
+                for (int i = 0; i < sstables.size(); i++) {
+                    SSTable sstable = sstables.get(i);
+                    System.out.println("  [" + i + "] " + sstable.getFilePath());
+                }
+            }
+            System.out.println("=============================");
+        } finally {
+            rwLock.readLock().unlock();
+        }
+    }
 }

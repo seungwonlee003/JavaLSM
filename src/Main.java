@@ -50,6 +50,10 @@ public class Main {
                         System.out.println("OK");
                         break;
 
+                    case "display":
+                        db.display();
+                        break;
+
                     case "exit":
                         System.out.println("Exiting...");
                         scanner.close();
