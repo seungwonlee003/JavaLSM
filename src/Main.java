@@ -6,7 +6,6 @@ import java.util.Scanner;
 public class Main {
     public static void main(String[] args) throws IOException {
         DB db = new DB();
-
         Scanner scanner = new Scanner(System.in);
         System.out.println("Database CLI: Commands are 'put <key> <value>', 'get <key>', 'delete <key>', 'exit'");
 
