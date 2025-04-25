@@ -15,8 +15,8 @@ public class SSTable {
     private final NavigableMap<String, Long> index;
     private String minKey;
     private String maxKey;
-    private static final int INDEX_INTERVAL = 100;
-    private static final int SSTABLE_SIZE_THRESHOLD = 30;
+    private static final int INDEX_INTERVAL = 100; // per entries
+    private static final int SSTABLE_SIZE_THRESHOLD = 30; // in bytes
 
     public SSTable(String filePath) throws IOException {
         this.filePath = filePath;
