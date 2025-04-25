@@ -53,7 +53,6 @@ public class CompactionService {
         );
     }
 
-    // Flushes memtables to SSTables, minimizing read blocking. 
     // Reads are only blocked during flushQueue removal and manifest updates to prevent inconsistent reads.
     private void flushMemtables() throws IOException {
         Memtable mem = getFlushableMemtable();
@@ -103,7 +102,6 @@ public class CompactionService {
         }
     }
 
-    // Runs compaction, minimizing read blocking. 
     // Reads are only blocked during manifest updates to prevent inconsistent SSTable references.
     private void runCompaction() throws IOException {
         int maxLevel = manifest.maxLevel();
