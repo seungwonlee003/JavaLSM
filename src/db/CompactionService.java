@@ -81,7 +81,6 @@ public class CompactionService {
     }
 
     private SSTable createSSTableFromMemtable(Memtable mem) throws IOException {
-        // No locks needed; this is a read-only operation on the memtable
         return SSTable.createSSTableFromMemtable(mem);
     }
 
