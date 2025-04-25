@@ -35,8 +35,10 @@ public class MemtableService {
     public void put(String key, String value) {
         rwLock.writeLock().lock();
         try {
+            // add persisting to WAL logic
             activeMemtable.put(key, value);
             if (activeMemtable.size() >= MEMTABLE_SIZE_THRESHOLD) {
+                // add resetting WAL logic
                 rotateMemtable();
             }
         } finally {
@@ -47,8 +49,10 @@ public class MemtableService {
     public void delete(String key) {
         rwLock.writeLock().lock();
         try {
+            // add persisting to WAL logic
             activeMemtable.put(key, TOMBSTONE);
             if (activeMemtable.size() >= MEMTABLE_SIZE_THRESHOLD) {
+                // add resetting WAL logic
                 rotateMemtable();
             }
         } finally {
