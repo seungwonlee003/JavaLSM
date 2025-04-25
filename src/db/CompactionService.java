@@ -6,9 +6,7 @@ import sstable.SSTable;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -20,7 +18,6 @@ public class CompactionService {
     private final Manifest manifest;
     private final ScheduledExecutorService memtableFlusher;
     private final ScheduledExecutorService compactionRunner;
-    private Map<Integer, Integer> levelMap;
 
     public CompactionService(MemtableService memtableService,
                              Manifest manifest) {
@@ -54,14 +51,6 @@ public class CompactionService {
                 500,
                 TimeUnit.MILLISECONDS
         );
-
-        // hardcoded
-        levelMap = new HashMap<>();
-        levelMap.put(0, 4);
-        levelMap.put(1, 10);
-        levelMap.put(2, 20);
-        levelMap.put(3, 30);
-        levelMap.put(4, 40);
     }
 
     // Flushes memtables to SSTables, minimizing read blocking. Reads are only blocked during flushQueue removal
@@ -137,7 +126,8 @@ public class CompactionService {
         readLock.lock();
         try {
             List<SSTable> currentLevelTables = manifest.getSSTables(level);
-            if (currentLevelTables.size() <= levelMap.get(level)) {
+            // level: 0 size = 4, level: 1 size = 20, level: 2 size = 100, level: 3 size = 500... etc
+            if (currentLevelTables.size() <= 4 * Math.pow(5, level)) {
                 return null;
             }
             List<SSTable> tablesToMerge = new ArrayList<>(currentLevelTables);
@@ -151,7 +141,6 @@ public class CompactionService {
     }
 
     private List<SSTable> compactTables(List<SSTable> tablesToMerge) throws IOException {
-        // No locks needed; this is an independent operation
         return SSTable.sortedRun("./data", tablesToMerge);
     }
 
