@@ -9,7 +9,7 @@ JavaLSM is an LSM tree based storage engine writting in Java. It offers a simple
 3. Read-optimized: uses bloom filter and index blocks to speed up reads.
 4. Automatic compaction: automatically compacts disk-based tables using a full-level leveled compaction strategy to control read and write amplication.
 5. Crash recovery: uses write-ahead log to allow for crash recovery for in-memory write buffer.
-6. Locks: fine grained locks to allow reads during expensive compaction operations
+6. Locks: uses fine grained locks to allow reads during expensive compaction operations.
 
 ## Usage
 ### Opening a DB instance
