@@ -138,7 +138,7 @@ public class CompactionService {
     }
 
     private List<SSTable> compactTables(List<SSTable> tablesToMerge) throws IOException {
-        return SSTable.sortedRun("./data", tablesToMerge);
+        return SSTable.sortedRun(tablesToMerge);
     }
 
     private void updateManifest(int level, List<SSTable> oldTables, List<SSTable> newTables) throws IOException {
