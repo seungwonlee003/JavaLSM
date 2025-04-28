@@ -1,5 +1,12 @@
 package memtable;
 
+import db.Manifest;
+import wal.WAL;
+import wal.WalEntry;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -8,12 +15,39 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class MemtableService {
     public final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private Memtable activeMemtable;
+    private WAL activeWAL;
+    private final Manifest manifest;
+    
     private final Queue<Memtable> flushQueue = new ArrayDeque<>();
     private static final int MEMTABLE_SIZE_THRESHOLD = 20; // in bytes
     private static final String TOMBSTONE = "<TOMBSTONE>";
 
-    public MemtableService() {
+    // has to be able to rebuild the flushqueue from the manifest when the server crashes
+    public MemtableService(Manifest manifest) throws IOException {
+        this.manifest = manifest;
         this.activeMemtable = new Memtable();
+        rebuildFromWAL();
+        initializeActiveWAL();
+    }
+
+    private void initializeActiveWAL() throws IOException {
+        try {
+            this.activeWAL = new WAL(manifest.getNextWALFileName());
+            manifest.addWALFile(activeWAL.getFileName());
+        } catch (IOException e) {
+            throw new IOException("Failed to initialize active WAL", e);
+        }
+    }
+
+    private void rebuildFromWAL() throws IOException {
+        for (String walFile : manifest.getWALFiles()) {
+            Memtable memtable = new Memtable();
+            WAL wal = new WAL(walFile);
+            for (WalEntry entry : wal.readAll()) {
+                memtable.put(entry.getKey(), entry.getValue());
+            }
+            flushQueue.add(memtable);
+        }
     }
 
     public String get(String key) {
@@ -35,12 +69,13 @@ public class MemtableService {
     public void put(String key, String value) {
         rwLock.writeLock().lock();
         try {
-            // add persisting to WAL logic
+            activeWAL.append(key, value);
             activeMemtable.put(key, value);
             if (activeMemtable.size() >= MEMTABLE_SIZE_THRESHOLD) {
-                // add resetting WAL logic
                 rotateMemtable();
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         } finally {
             rwLock.writeLock().unlock();
         }
@@ -49,20 +84,24 @@ public class MemtableService {
     public void delete(String key) {
         rwLock.writeLock().lock();
         try {
-            // add persisting to WAL logic
+            activeWAL.append(key, TOMBSTONE);
             activeMemtable.put(key, TOMBSTONE);
             if (activeMemtable.size() >= MEMTABLE_SIZE_THRESHOLD) {
-                // add resetting WAL logic
                 rotateMemtable();
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         } finally {
             rwLock.writeLock().unlock();
         }
     }
 
-    private void rotateMemtable() {
+    private void rotateMemtable() throws IOException {
+        manifest.addWALFile(activeWAL.getFileName());
         flushQueue.add(activeMemtable);
         activeMemtable = new Memtable();
+        activeWAL = new WAL(manifest.getNextWALFileName());
+        manifest.addWALFile(activeWAL.getFileName());
     }
 
     public boolean hasFlushableMemtable() {
@@ -73,8 +112,12 @@ public class MemtableService {
         return flushQueue.peek();
     }
 
-    public void removeFlushableMemtable(Memtable memtable) {
+    // WAL delete logic from file and manifest reference
+    public void removeFlushableMemtable(Memtable memtable) throws IOException {
         flushQueue.remove(memtable);
+        String walFile = manifest.getWALFiles().get(flushQueue.size());
+        manifest.removeWALFile(walFile);
+        Files.deleteIfExists(Paths.get(walFile));
     }
 
     public ReadWriteLock getLock(){

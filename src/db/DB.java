@@ -12,7 +12,7 @@ public class DB {
 
     public DB() throws IOException {
         manifest = new Manifest();
-        this.memtableService = new MemtableService();
+        this.memtableService = new MemtableService(manifest);
         this.sstableService = new SSTableService(manifest);
         CompactionService compactionService = new CompactionService(memtableService, manifest);
     }

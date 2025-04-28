@@ -97,6 +97,8 @@ public class CompactionService {
             } finally {
                 manifestWriteLock.unlock();
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         } finally {
             writeLock.unlock();
         }

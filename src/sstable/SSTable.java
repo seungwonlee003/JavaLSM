@@ -309,6 +309,15 @@ public class SSTable {
 
     // Read block (~4KB) from disk using block index to find key
     public String get(String key) {
+        /*
+           This check is not for defensive programming purpose, but very important for the case where SSTable is
+           created without any entries (due to server crash). SSTable will later be compacted so empty SSTable
+           wouldn't be too problematic.
+         */
+        if(minKey == null || maxKey == null){
+            return null;
+        }
+
         if (key.compareTo(minKey) < 0 || key.compareTo(maxKey) > 0) {
             return null;
         }
