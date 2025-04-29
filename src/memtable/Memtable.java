@@ -7,11 +7,8 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 
 public class Memtable implements Iterable<Map.Entry<String, String>> {
-    // change it to skip list?
     private final NavigableMap<String, String> table = new TreeMap<>();
     private long sizeBytes = 0L;
-
-    // add replaying WAL to restore memtable logic in the constructor
 
     public String get(String key) {
         return table.get(key);

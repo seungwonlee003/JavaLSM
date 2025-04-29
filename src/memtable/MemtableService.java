@@ -9,7 +9,7 @@ public class MemtableService {
     public final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private Memtable activeMemtable;
     private final Queue<Memtable> flushQueue = new ArrayDeque<>();
-    private static final int MEMTABLE_SIZE_THRESHOLD = 30; // in bytes
+    private static final int MEMTABLE_SIZE_THRESHOLD = 30;
     private static final String TOMBSTONE = "<TOMBSTONE>";
 
     public MemtableService() {

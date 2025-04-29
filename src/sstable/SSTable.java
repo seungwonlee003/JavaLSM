@@ -15,7 +15,7 @@ public class SSTable {
     private String minKey;
     private String maxKey;
     private static final int BLOCK_SIZE = 15;
-    private static final int SSTABLE_SIZE_THRESHOLD = 30; // in bytes
+    private static final int SSTABLE_SIZE_THRESHOLD = 30;
 
     public SSTable(String filePath) throws IOException {
         this.filePath = filePath;
@@ -158,18 +158,22 @@ public class SSTable {
         while (!queue.isEmpty()) {
             SSTableEntry entry = queue.poll();
             String key = entry.key;
+            String value = entry.value;
+
             if (lastKey == null || !lastKey.equals(key)) {
                 lastKey = key;
-                String value = entry.value;
-                buffer.add(new AbstractMap.SimpleEntry<>(key, value));
-                currentSize += 4 + key.getBytes(StandardCharsets.UTF_8).length +
-                        4 + value.getBytes(StandardCharsets.UTF_8).length;
+                if (!"<TOMBSTONE>".equals(value)) {
+                    buffer.add(new AbstractMap.SimpleEntry<>(key, value));
+                    currentSize += 4 + key.getBytes(StandardCharsets.UTF_8).length +
+                            4 + (value != null ? value.getBytes(StandardCharsets.UTF_8).length : 0);
+                }
                 if (currentSize > SSTABLE_SIZE_THRESHOLD) {
                     newSSTables.add(createSSTableFromBuffer(dataDir, buffer));
                     buffer.clear();
                     currentSize = 0;
                 }
             }
+
             int idx = entry.sstableNumber;
             if (iterators[idx].hasNext()) {
                 Map.Entry<String, String> nextEntry = iterators[idx].next();
@@ -302,7 +306,6 @@ public class SSTable {
     public String getFilePath() {
         return filePath;
     }
-
 
     // For testing
     public List<Map.Entry<String, String>> getAllEntries() throws IOException {

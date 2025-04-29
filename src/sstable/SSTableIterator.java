@@ -1,5 +1,7 @@
 package sstable;
 
+import util.IOUtils;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
@@ -34,20 +36,9 @@ public class SSTableIterator implements Iterator<Map.Entry<String, String>> {
         if (!hasNext()) {
             throw new NoSuchElementException();
         }
-
         try {
-            int keyLength = file.readInt();
-            byte[] keyBytes = new byte[keyLength];
-            file.readFully(keyBytes);
-            String key = new String(keyBytes, StandardCharsets.UTF_8);
-
-            int valueLength = file.readInt();
-            byte[] valueBytes = new byte[valueLength];
-            if (valueLength > 0) {
-                file.readFully(valueBytes);
-            }
-            String value = valueLength > 0 ? new String(valueBytes, StandardCharsets.UTF_8) : null;
-
+            String key = IOUtils.readString(file);
+            String value = IOUtils.readString(file);
             return new AbstractMap.SimpleEntry<>(key, value);
         } catch (IOException e) {
             throw new RuntimeException("Failed to read next entry from SSTable", e);
