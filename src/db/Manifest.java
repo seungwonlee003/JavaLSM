@@ -12,7 +12,6 @@ public class Manifest {
     private final String filePath;
     private final String current;
     private final Map<Integer, List<SSTable>> levelMap = new HashMap<>();
-    private final List<String> walFiles = new ArrayList<>();
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
 
     public Manifest() throws IOException {
@@ -43,7 +42,6 @@ public class Manifest {
                 }
                 levelMap.put(level, sstables);
             }
-            walFiles.addAll((List<String>) ois.readObject());
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
@@ -67,7 +65,6 @@ public class Manifest {
         try (ObjectOutputStream oos = new ObjectOutputStream(
                 new FileOutputStream(filePath + "/" + manifestFile))) {
             oos.writeObject(serializedMap);
-            oos.writeObject(new ArrayList<>(walFiles));
         }
     }
 
@@ -85,39 +82,6 @@ public class Manifest {
             }
         }
         return generateManifestFileName(maxNumber + 1);
-    }
-
-    public String getNextWALFileName() {
-        return filePath + "/WAL-" + System.currentTimeMillis();
-    }
-
-    public void addWALFile(String walFile) throws IOException {
-        rwLock.writeLock().lock();
-        try {
-            walFiles.add(walFile);
-            persist();
-        } finally {
-            rwLock.writeLock().unlock();
-        }
-    }
-
-    public void removeWALFile(String walFile) throws IOException {
-        rwLock.writeLock().lock();
-        try {
-            walFiles.remove(walFile);
-            persist();
-        } finally {
-            rwLock.writeLock().unlock();
-        }
-    }
-
-    public List<String> getWALFiles() {
-        rwLock.readLock().lock();
-        try {
-            return new ArrayList<>(walFiles);
-        } finally {
-            rwLock.readLock().unlock();
-        }
     }
 
     public ReadWriteLock getLock() {
@@ -144,19 +108,15 @@ public class Manifest {
         persist();
     }
 
+    // For testing
     public void displayManifestFile() {
         rwLock.readLock().lock();
         try {
-            if (levelMap.isEmpty() && walFiles.isEmpty()) {
+            if (levelMap.isEmpty()) {
                 System.out.println("Manifest is empty.");
                 return;
             }
-            System.out.println("===== Manifest Contents =====");
-            System.out.println("WAL Files:");
-            for (int i = 0; i < walFiles.size(); i++) {
-                System.out.println("  [" + i + "] " + walFiles.get(i));
-            }
-            System.out.println("\nSSTables by Level:");
+            System.out.println("===== SSTables by Level =====");
             for (Map.Entry<Integer, List<SSTable>> entry : levelMap.entrySet()) {
                 int level = entry.getKey();
                 List<SSTable> sstables = entry.getValue();
@@ -164,6 +124,19 @@ public class Manifest {
                 for (int i = 0; i < sstables.size(); i++) {
                     SSTable sstable = sstables.get(i);
                     System.out.println("  [" + i + "] " + sstable.getFilePath());
+                    System.out.println("    Contents:");
+                    try {
+                        List<Map.Entry<String, String>> entries = sstable.getAllEntries();
+                        if (entries.isEmpty()) {
+                            System.out.println("      (Empty)");
+                        } else {
+                            for (Map.Entry<String, String> kv : entries) {
+                                System.out.println("      Key: " + kv.getKey() + ", Value: " + kv.getValue());
+                            }
+                        }
+                    } catch (IOException e) {
+                        System.out.println("      (Error reading contents: " + e.getMessage() + ")");
+                    }
                 }
             }
             System.out.println("=============================");

@@ -36,6 +36,6 @@ public class Memtable implements Iterable<Map.Entry<String, String>> {
     private long estimateSize(String key, String value) {
         int keyLen = key.getBytes(StandardCharsets.UTF_8).length;
         int valueLen = value.getBytes(StandardCharsets.UTF_8).length;
-        return keyLen + valueLen;
+        return 4 + keyLen + 4 + valueLen;
     }
 }

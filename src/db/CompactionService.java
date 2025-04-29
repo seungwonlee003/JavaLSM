@@ -97,8 +97,6 @@ public class CompactionService {
             } finally {
                 manifestWriteLock.unlock();
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         } finally {
             writeLock.unlock();
         }
@@ -140,7 +138,7 @@ public class CompactionService {
     }
 
     private List<SSTable> compactTables(List<SSTable> tablesToMerge) throws IOException {
-        return SSTable.sortedRun(tablesToMerge);
+        return SSTable.sortedRun("./data", tablesToMerge);
     }
 
     private void updateManifest(int level, List<SSTable> oldTables, List<SSTable> newTables) throws IOException {
