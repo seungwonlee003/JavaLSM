@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 @Fork(value = 1)
 @Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
-public class LSMStorageBenchmark {
+public class SSTableBenchmark {
     private DB engine;
     // 1 million entries
     private final int numEntries = 1_000_000;
@@ -33,14 +33,8 @@ public class LSMStorageBenchmark {
     }
 
     @Benchmark
-    public void testPut() {
-        int i = random.nextInt(numEntries);
-        engine.put("key" + i, "newValue" + i);
-    }
-
-    @Benchmark
     public String testGet() {
         int i = random.nextInt(numEntries);
-        return engine.get("key" + i);
+        return engine.sstableService.get("key" + i);
     }
 }

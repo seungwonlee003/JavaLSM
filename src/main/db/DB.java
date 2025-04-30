@@ -6,9 +6,9 @@ import main.sstable.SSTableService;
 import java.io.IOException;
 
 public class DB {
-    private final MemtableService memtableService;
-    private final SSTableService sstableService;
-    private final Manifest manifest;
+    public final MemtableService memtableService;
+    public final SSTableService sstableService;
+    public final Manifest manifest;
 
     public DB() throws IOException {
         manifest = new Manifest();
