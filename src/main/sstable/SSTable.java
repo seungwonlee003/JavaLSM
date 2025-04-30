@@ -1,8 +1,8 @@
-package sstable;
+package main.sstable;
 
-import memtable.Memtable;
-import util.BloomFilter;
-import util.IOUtils;
+import main.memtable.Memtable;
+import main.util.BloomFilter;
+import main.util.IOUtils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -14,8 +14,8 @@ public class SSTable {
     private final NavigableMap<String, BlockInfo> index;
     private String minKey;
     private String maxKey;
-    private static final int BLOCK_SIZE = 15;
-    private static final int SSTABLE_SIZE_THRESHOLD = 30;
+    private static final int BLOCK_SIZE = 50;
+    private static final int SSTABLE_SIZE_THRESHOLD = 1 * 1024 * 1024;
 
     public SSTable(String filePath) throws IOException {
         this.filePath = filePath;

@@ -1,7 +1,7 @@
-package db;
+package main.db;
 
-import memtable.MemtableService;
-import sstable.SSTableService;
+import main.memtable.MemtableService;
+import main.sstable.SSTableService;
 
 import java.io.IOException;
 

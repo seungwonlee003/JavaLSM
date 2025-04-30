@@ -1,8 +1,8 @@
-package db;
+package main.db;
 
-import memtable.Memtable;
-import memtable.MemtableService;
-import sstable.SSTable;
+import main.memtable.Memtable;
+import main.memtable.MemtableService;
+import main.sstable.SSTable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
 public class CompactionService {
-
     private final MemtableService memtableService;
     private final Manifest manifest;
     private final ScheduledExecutorService memtableFlusher;

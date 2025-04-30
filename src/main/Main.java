@@ -1,4 +1,6 @@
-import db.DB;
+package main;
+
+import main.db.DB;
 
 import java.io.IOException;
 import java.util.Scanner;

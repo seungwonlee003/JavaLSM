@@ -1,6 +1,6 @@
-package db;
+package main.db;
 
-import sstable.SSTable;
+import main.sstable.SSTable;
 
 import java.io.*;
 import java.nio.file.*;

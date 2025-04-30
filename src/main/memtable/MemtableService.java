@@ -1,4 +1,4 @@
-package memtable;
+package main.memtable;
 
 import java.util.ArrayDeque;
 import java.util.Queue;
@@ -9,7 +9,7 @@ public class MemtableService {
     public final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private Memtable activeMemtable;
     private final Queue<Memtable> flushQueue = new ArrayDeque<>();
-    private static final int MEMTABLE_SIZE_THRESHOLD = 30;
+    private static final int MEMTABLE_SIZE_THRESHOLD = 1 * 1024 * 1024;
     private static final String TOMBSTONE = "<TOMBSTONE>";
 
     public MemtableService() {

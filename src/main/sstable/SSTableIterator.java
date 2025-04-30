@@ -1,9 +1,8 @@
-package sstable;
+package main.sstable;
 
-import util.IOUtils;
+import main.util.IOUtils;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.Map;
