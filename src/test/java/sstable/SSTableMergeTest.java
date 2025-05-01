@@ -66,13 +66,6 @@ public class SSTableMergeTest {
         merged = mergedTables.get(0);
     }
 
-    @AfterAll
-    public static void teardown() throws IOException {
-        merged.delete();
-        first.delete();
-        second.delete();
-    }
-
     @Test
     public void shouldMergeAndGetItems() throws IOException {
         for (var entry : expectedEntries) {
@@ -91,6 +84,13 @@ public class SSTableMergeTest {
             assertEquals(expectedEntries.get(i).getKey(), actualEntries.get(i).getKey());
             assertEquals(expectedEntries.get(i).getValue(), actualEntries.get(i).getValue());
         }
+    }
+
+    @AfterAll
+    public static void teardown() throws IOException {
+        merged.delete();
+        first.delete();
+        second.delete();
     }
 
     private static SSTable createSSTable(String filePath, List<Map.Entry<String, String>> entries) throws IOException {

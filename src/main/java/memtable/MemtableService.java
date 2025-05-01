@@ -10,7 +10,6 @@ public class MemtableService {
     private Memtable activeMemtable;
     private final Queue<Memtable> flushQueue = new ArrayDeque<>();
     private static final int MEMTABLE_SIZE_THRESHOLD = 1 * 1024 * 1024;
-    //1 * 1024 * 1024
     private static final String TOMBSTONE = "<TOMBSTONE>";
 
     public MemtableService() {

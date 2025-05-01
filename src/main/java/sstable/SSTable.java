@@ -16,7 +16,7 @@ public class SSTable {
     private String maxKey;
     private static final int BLOCK_SIZE = 50;
     private static final int SSTABLE_SIZE_THRESHOLD = 1 * 1024 * 1024;
-//1 * 1024 * 1024
+
     public SSTable(String filePath) throws IOException {
         this.filePath = filePath;
         this.index = new TreeMap<>();
@@ -43,7 +43,6 @@ public class SSTable {
             while (file.getFilePointer() < file.length()) {
                 long recordStart = file.getFilePointer();
                 String key = IOUtils.readString(file);
-                byte[] valueBytes = IOUtils.readBytes(file);
                 long recLen = file.getFilePointer() - recordStart;
 
                 if (minKey == null) {
