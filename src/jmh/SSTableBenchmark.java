@@ -1,6 +1,6 @@
 package jmh;
 
-import main.db.DB;
+import db.DB;
 import org.openjdk.jmh.annotations.*;
 
 import java.io.IOException;

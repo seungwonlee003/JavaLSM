@@ -6,3 +6,5 @@ dontinline,*.*_thrpt_jmhStub
 inline,jmh/LSMStorageBenchmark.setup
 inline,jmh/LSMStorageBenchmark.testGet
 inline,jmh/LSMStorageBenchmark.testPut
+inline,jmh/SSTableBenchmark.setup
+inline,jmh/SSTableBenchmark.testGet
