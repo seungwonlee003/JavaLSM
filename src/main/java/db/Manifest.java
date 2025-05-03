@@ -12,13 +12,18 @@ public class Manifest {
     private final String filePath;
     private final String current;
     private final Map<Integer, List<SSTable>> levelMap = new HashMap<>();
+    public final List<String> walPaths = new ArrayList<>();
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
 
     public Manifest() throws IOException {
         this.filePath = "./data";
         this.current = filePath + "/CURRENT";
 
-        Files.createDirectories(Paths.get(filePath));
+        try {
+            Files.createDirectories(Paths.get(filePath));
+        } catch (IOException e) {
+            throw new IOException("Failed to create data directory: " + filePath, e);
+        }
 
         Path currentPath = Paths.get(current);
         if (Files.exists(currentPath)) {
@@ -38,33 +43,47 @@ public class Manifest {
                 int level = entry.getKey();
                 List<SSTable> sstables = new ArrayList<>();
                 for (String sstablePath : entry.getValue()) {
-                    sstables.add(new SSTable(sstablePath));
+                    try {
+                        sstables.add(new SSTable(sstablePath));
+                    } catch (IOException e) {
+                        System.err.println("Failed to load SSTable: " + sstablePath + " - " + e.getMessage());
+                    }
                 }
                 levelMap.put(level, sstables);
             }
+            List<String> loadedWalPaths = (List<String>) ois.readObject();
+            walPaths.addAll(loadedWalPaths);
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
+            throw new IOException("Failed to deserialize manifest: " + e.getMessage(), e);
+        } catch (IOException e) {
+            throw new IOException("Failed to read manifest file: " + manifestFile, e);
         }
     }
 
     public void persist() throws IOException {
-        String newManifestFile = generateNextManifestFileName();
-        persistToFile(newManifestFile);
-        Files.writeString(Paths.get(current), newManifestFile);
+        rwLock.writeLock().lock();
+        try {
+            String newManifestFile = generateNextManifestFileName();
+            persistToFile(newManifestFile);
+            Files.writeString(Paths.get(current), newManifestFile);
+        } finally {
+            rwLock.writeLock().unlock();
+        }
     }
 
     private void persistToFile(String manifestFile) throws IOException {
-        Map<Integer, List<String>> serializedMap = new HashMap<>();
-        for (Map.Entry<Integer, List<SSTable>> entry : levelMap.entrySet()) {
-            List<String> sstablePaths = new ArrayList<>();
-            for (SSTable sstable : entry.getValue()) {
-                sstablePaths.add(sstable.getFilePath());
-            }
-            serializedMap.put(entry.getKey(), sstablePaths);
-        }
         try (ObjectOutputStream oos = new ObjectOutputStream(
                 new FileOutputStream(filePath + "/" + manifestFile))) {
+            Map<Integer, List<String>> serializedMap = new HashMap<>();
+            for (Map.Entry<Integer, List<SSTable>> entry : levelMap.entrySet()) {
+                List<String> sstablePaths = new ArrayList<>();
+                for (SSTable sstable : entry.getValue()) {
+                    sstablePaths.add(sstable.getFilePath());
+                }
+                serializedMap.put(entry.getKey(), sstablePaths);
+            }
             oos.writeObject(serializedMap);
+            oos.writeObject(new ArrayList<>(walPaths));
         }
     }
 
@@ -80,6 +99,8 @@ public class Manifest {
                 int number = Integer.parseInt(fileName.substring("MANIFEST-".length()));
                 maxNumber = Math.max(maxNumber, number);
             }
+        } catch (NumberFormatException e) {
+            throw new IOException("Invalid manifest file name format", e);
         }
         return generateManifestFileName(maxNumber + 1);
     }
@@ -88,30 +109,81 @@ public class Manifest {
         return rwLock;
     }
 
+    public void addWAL(String walPath) throws IOException {
+        rwLock.writeLock().lock();
+        try {
+            // add to the last index
+            walPaths.add(walPath);
+            persist();
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
+    public void removeWAL(String walPath) throws IOException {
+        rwLock.writeLock().lock();
+        try {
+            walPaths.remove(walPath);
+            persist();
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
     public void addSSTable(int level, SSTable sstable) throws IOException {
-        levelMap.computeIfAbsent(level, k -> new ArrayList<>()).add(0, sstable);
-        persist();
+        rwLock.writeLock().lock();
+        try {
+            levelMap.computeIfAbsent(level, k -> new ArrayList<>()).add(0, sstable);
+            persist();
+        } finally {
+            rwLock.writeLock().unlock();
+        }
     }
 
     public List<SSTable> getSSTables(int level) {
-        return new ArrayList<>(levelMap.getOrDefault(level, new ArrayList<>()));
+        rwLock.readLock().lock();
+        try {
+            return new ArrayList<>(levelMap.getOrDefault(level, new ArrayList<>()));
+        } finally {
+            rwLock.readLock().unlock();
+        }
     }
 
     public int maxLevel() {
-        return levelMap.isEmpty() ? -1 : levelMap.keySet().stream().max(Integer::compare).orElse(-1);
+        rwLock.readLock().lock();
+        try {
+            return levelMap.isEmpty() ? -1 : Collections.max(levelMap.keySet());
+        } finally {
+            rwLock.readLock().unlock();
+        }
     }
 
     public void replace(int levelToClear, List<SSTable> newTables) throws IOException {
-        levelMap.remove(levelToClear);
-        levelMap.remove(levelToClear + 1);
-        levelMap.computeIfAbsent(levelToClear + 1, k -> new ArrayList<>()).addAll(newTables);
-        persist();
+        rwLock.writeLock().lock();
+        try {
+            levelMap.remove(levelToClear);
+            levelMap.remove(levelToClear + 1);
+            levelMap.computeIfAbsent(levelToClear + 1, k -> new ArrayList<>()).addAll(newTables);
+            persist();
+        } finally {
+            rwLock.writeLock().unlock();
+        }
     }
 
-    // For testing
     public void displayManifestFile() {
         rwLock.readLock().lock();
         try {
+            System.out.println("===== Manifest Contents =====");
+            // Display WAL files
+            System.out.println("WAL Files:");
+            if (walPaths.isEmpty()) {
+                System.out.println("  (None)");
+            } else {
+                for (int i = 0; i < walPaths.size(); i++) {
+                    System.out.println("  [" + i + "] " + walPaths.get(i));
+                }
+            }
+
             if (levelMap.isEmpty()) {
                 System.out.println("Manifest is empty.");
                 return;

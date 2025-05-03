@@ -1,5 +1,6 @@
 package db;
 
+import compaction.CompactionService;
 import memtable.MemtableService;
 import sstable.SSTableService;
 
@@ -9,12 +10,13 @@ public class DB {
     public final MemtableService memtableService;
     public final SSTableService sstableService;
     public final Manifest manifest;
+    public final CompactionService compactionService;
 
     public DB() throws IOException {
         manifest = new Manifest();
-        this.memtableService = new MemtableService();
+        this.memtableService = new MemtableService(manifest);
         this.sstableService = new SSTableService(manifest);
-        CompactionService compactionService = new CompactionService(memtableService, manifest);
+        this.compactionService = new CompactionService(memtableService, manifest);
     }
 
     public String get(String key){
@@ -23,7 +25,7 @@ public class DB {
         return sstableService.get(key);
     }
 
-    public void put(String key, String value){
+    public void put(String key, String value) throws IOException {
         memtableService.put(key, value);
     }
 

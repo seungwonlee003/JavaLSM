@@ -1,5 +1,6 @@
-package db;
+package compaction;
 
+import db.Manifest;
 import memtable.Memtable;
 import memtable.MemtableService;
 import sstable.SSTable;
@@ -52,6 +53,12 @@ public class CompactionService {
         );
     }
 
+    public void forceFlush() throws InterruptedException, IOException {
+        memtableService.rotateMemtable();
+        // wait for async thread to call flushMemtable
+        Thread.sleep(2000);
+    }
+
     // Reads are only blocked during flushQueue removal and manifest updates to prevent inconsistent reads.
     private void flushMemtables() throws IOException {
         Memtable mem = getFlushableMemtable();
@@ -82,7 +89,7 @@ public class CompactionService {
         return SSTable.createSSTableFromMemtable(mem);
     }
 
-    private void updateFlushQueueAndManifest(Memtable mem, SSTable sstable) {
+    private void updateFlushQueueAndManifest(Memtable mem, SSTable sstable) throws IOException {
         Lock writeLock = memtableService.getLock().writeLock();
         writeLock.lock();
         try {

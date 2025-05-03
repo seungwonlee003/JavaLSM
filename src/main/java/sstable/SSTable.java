@@ -15,7 +15,7 @@ public class SSTable {
     private String minKey;
     private String maxKey;
     private static final int BLOCK_SIZE = 50;
-    private static final int SSTABLE_SIZE_THRESHOLD = 1 * 1024 * 1024;
+    private static final int SSTABLE_SIZE_THRESHOLD = 50;
 
     public SSTable(String filePath) throws IOException {
         this.filePath = filePath;
