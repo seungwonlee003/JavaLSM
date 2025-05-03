@@ -1,4 +1,4 @@
-package db;
+package util;
 
 import sstable.SSTable;
 
@@ -112,7 +112,6 @@ public class Manifest {
     public void addWAL(String walPath) throws IOException {
         rwLock.writeLock().lock();
         try {
-            // add to the last index
             walPaths.add(walPath);
             persist();
         } finally {
@@ -174,7 +173,6 @@ public class Manifest {
         rwLock.readLock().lock();
         try {
             System.out.println("===== Manifest Contents =====");
-            // Display WAL files
             System.out.println("WAL Files:");
             if (walPaths.isEmpty()) {
                 System.out.println("  (None)");
@@ -185,9 +183,10 @@ public class Manifest {
             }
 
             if (levelMap.isEmpty()) {
-                System.out.println("Manifest is empty.");
+                System.out.println("No SSTables present.");
                 return;
             }
+
             System.out.println("===== SSTables by Level =====");
             for (Map.Entry<Integer, List<SSTable>> entry : levelMap.entrySet()) {
                 int level = entry.getKey();
@@ -196,19 +195,6 @@ public class Manifest {
                 for (int i = 0; i < sstables.size(); i++) {
                     SSTable sstable = sstables.get(i);
                     System.out.println("  [" + i + "] " + sstable.getFilePath());
-                    System.out.println("    Contents:");
-                    try {
-                        List<Map.Entry<String, String>> entries = sstable.getAllEntries();
-                        if (entries.isEmpty()) {
-                            System.out.println("      (Empty)");
-                        } else {
-                            for (Map.Entry<String, String> kv : entries) {
-                                System.out.println("      Key: " + kv.getKey() + ", Value: " + kv.getValue());
-                            }
-                        }
-                    } catch (IOException e) {
-                        System.out.println("      (Error reading contents: " + e.getMessage() + ")");
-                    }
                 }
             }
             System.out.println("=============================");

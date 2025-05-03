@@ -1,24 +1,25 @@
 package memtable;
 
-import db.Manifest;
+import util.Manifest;
 import util.WAL;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class MemtableService {
-    public final ReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final Manifest manifest;
     private Memtable activeMemtable;
     private WAL activeWAL;
     private final Queue<Memtable> flushQueue = new ArrayDeque<>();
-    private static final int MEMTABLE_SIZE_THRESHOLD = 50;
+    private static final int MEMTABLE_SIZE_THRESHOLD = 1024 * 1024;
     private static final String TOMBSTONE = "<TOMBSTONE>";
-    private boolean disableFlush = false;  // Initialized to false
-    private final Manifest manifest;
+    private boolean disableFlush = false;
+    public final ReadWriteLock rwLock = new ReentrantReadWriteLock();
 
     public MemtableService(Manifest manifest) throws IOException {
         this.manifest = manifest;
@@ -43,12 +44,9 @@ public class MemtableService {
         }
     }
 
-    public void setDisableFlush(boolean disableFlush) {
-        this.disableFlush = disableFlush;
-    }
-
     public String get(String key) {
-        rwLock.readLock().lock();
+        Lock readLock = rwLock.readLock();
+        readLock.lock();
         try {
             String v = activeMemtable.get(key);
             if (v != null) return v;
@@ -59,12 +57,13 @@ public class MemtableService {
             }
             return null;
         } finally {
-            rwLock.readLock().unlock();
+            readLock.unlock();
         }
     }
 
     public void put(String key, String value) throws IOException {
         rwLock.writeLock().lock();
+        manifest.getLock().writeLock().lock();
         try {
             activeWAL.writeEntry(key, value);
             activeMemtable.put(key, value);
@@ -73,11 +72,13 @@ public class MemtableService {
             }
         } finally {
             rwLock.writeLock().unlock();
+            manifest.getLock().writeLock().unlock();
         }
     }
 
     public void delete(String key) {
         rwLock.writeLock().lock();
+        manifest.getLock().writeLock().lock();
         try {
             activeWAL.writeEntry(key, TOMBSTONE);
             activeMemtable.put(key, TOMBSTONE);
@@ -88,13 +89,15 @@ public class MemtableService {
             throw new RuntimeException(e);
         } finally {
             rwLock.writeLock().unlock();
+            manifest.getLock().writeLock().unlock();
         }
     }
 
     public void rotateMemtable() throws IOException {
         flushQueue.add(activeMemtable);
-        activeMemtable = new Memtable();
         activeWAL.close();
+
+        activeMemtable = new Memtable();
         activeWAL = new WAL(generateWALFilePath());
         manifest.addWAL(activeWAL.getFilePath());
     }
@@ -114,7 +117,6 @@ public class MemtableService {
             String walPathToRemove = manifest.walPaths.get(0); // Oldest WAL
             manifest.removeWAL(walPathToRemove);
             new WAL(walPathToRemove).delete();
-            System.out.println("Removed " + walPathToRemove);
         }
     }
 
@@ -124,5 +126,9 @@ public class MemtableService {
 
     private String generateWALFilePath() {
         return "./data" + "/wal-" + System.nanoTime() + ".log";
+    }
+
+    public void setDisableFlush(boolean disableFlush) {
+        this.disableFlush = disableFlush;
     }
 }

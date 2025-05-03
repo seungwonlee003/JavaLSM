@@ -1,7 +1,10 @@
 package sstable;
 
-import db.DB;
+import core.DB;
 import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.io.IOException;
 import java.util.Base64;
@@ -26,7 +29,7 @@ public class SSTableGetBenchmark {
     @Setup(Level.Trial)
     public void setup() throws IOException, InterruptedException {
         db = new DB();
-        keys   = new byte[keyCount][16];
+        keys = new byte[keyCount][16];
         values = new byte[keyCount][1024];
 
         Random r = new Random(12345);
@@ -37,7 +40,7 @@ public class SSTableGetBenchmark {
             String valueStr = Base64.getEncoder().encodeToString(values[i]);
             db.put(keyStr, valueStr);
         }
-        // Flush the active MemTable into SSTable so gets hit SSTableService
+        // Flush the active MemTable into SSTable so SSTable contains all the entries
         db.compactionService.forceFlush();
     }
 
@@ -50,14 +53,12 @@ public class SSTableGetBenchmark {
 
     @Benchmark
     public String negativeGet() {
-        // pick an existing key, then perturb so it’s guaranteed *not* in the SSTable
         int idx = ThreadLocalRandom.current().nextInt(keyCount);
         byte[] base = keys[idx];
         byte[] miss = base.clone();
-        miss[0] ^= 0xFF;  // flip one bit
+        miss[0] ^= 0xFF;
 
         String missingKey = Base64.getEncoder().encodeToString(miss);
-        // use SSTableService for lookup
         return db.sstableService.get(missingKey);  // should return null
     }
 }

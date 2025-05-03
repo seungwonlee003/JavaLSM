@@ -14,8 +14,8 @@ public class SSTable {
     private final NavigableMap<String, BlockInfo> index;
     private String minKey;
     private String maxKey;
-    private static final int BLOCK_SIZE = 50;
-    private static final int SSTABLE_SIZE_THRESHOLD = 50;
+    private static final int BLOCK_SIZE = 2000;
+    private static final int SSTABLE_SIZE_THRESHOLD = 1024 * 1024;
 
     public SSTable(String filePath) throws IOException {
         this.filePath = filePath;

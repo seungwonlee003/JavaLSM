@@ -6,13 +6,6 @@ dontinline,*.*_thrpt_jmhStub
 inline,lsm/LSMGetBenchmark.negativeGet
 inline,lsm/LSMGetBenchmark.positiveGet
 inline,lsm/LSMGetBenchmark.setup
-inline,lsm/LSMPutBenchmark.put
-inline,lsm/LSMPutBenchmark.setup
-inline,lsm/MemtableGetBenchmark.negativeGet
-inline,lsm/MemtableGetBenchmark.positiveGet
-inline,lsm/MemtableGetBenchmark.setup
-inline,memtable/MemtablePutBenchmark.put
-inline,memtable/MemtablePutBenchmark.setup
 inline,sstable/SSTableGetBenchmark.negativeGet
 inline,sstable/SSTableGetBenchmark.positiveGet
 inline,sstable/SSTableGetBenchmark.setup

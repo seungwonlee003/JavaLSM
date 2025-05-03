@@ -1,6 +1,6 @@
 package sstable;
 
-import db.Manifest;
+import util.Manifest;
 
 public class SSTableService {
     private final Manifest manifest;

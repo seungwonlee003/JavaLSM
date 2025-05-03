@@ -1,6 +1,5 @@
-package compaction;
+package util;
 
-import db.Manifest;
 import memtable.Memtable;
 import memtable.MemtableService;
 import sstable.SSTable;
@@ -129,8 +128,8 @@ public class CompactionService {
         readLock.lock();
         try {
             List<SSTable> currentLevelTables = manifest.getSSTables(level);
-            // level: 0 size = 4, level: 1 size = 20, level: 2 size = 100, level: 3 size = 500... etc
-            if (currentLevelTables.size() <= 4 * Math.pow(5, level)) {
+            // level: 0 size = 4, level: 1 size = 16, level: 2 size = 64, level: 3 size = 256... etc
+            if (currentLevelTables.size() <= 4 * Math.pow(4, level)) {
                 return null;
             }
             List<SSTable> tablesToMerge = new ArrayList<>(currentLevelTables);

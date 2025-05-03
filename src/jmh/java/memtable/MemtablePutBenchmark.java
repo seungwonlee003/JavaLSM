@@ -1,7 +1,7 @@
 package memtable;
 
 
-import db.DB;
+import core.DB;
 import org.openjdk.jmh.annotations.*;
 
 import java.io.IOException;

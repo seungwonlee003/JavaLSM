@@ -1,7 +1,6 @@
 package lsm;
 
-import db.DB;
-import memtable.MemtableService;
+import core.DB;
 import org.openjdk.jmh.annotations.*;
 import java.io.IOException;
 import java.util.Base64;
@@ -21,12 +20,7 @@ import java.util.concurrent.TimeUnit;
 @Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 public class MemtableGetBenchmark {
-    /**
-     * Chosen so that:
-     *   keyCount * (16 bytes key + 1024 bytes value)
-     *   ≈ 1000 * 1040 bytes = ~1.04 MB
-     * stays just under a 1 MB memtable threshold.
-     */
+
     @Param({"1000000"})
     public int keyCount;
 
@@ -61,13 +55,12 @@ public class MemtableGetBenchmark {
 
     @Benchmark
     public String negativeGet() {
-        // pick an existing key, then perturb so it’s guaranteed *not* in the DB
         int idx = ThreadLocalRandom.current().nextInt(keyCount);
         byte[] base = keys[idx];
         byte[] miss = base.clone();
-        miss[0] ^= 0xFF;  // flip one bit
+        miss[0] ^= 0xFF;
 
         String missingKey = Base64.getEncoder().encodeToString(miss);
-        return db.memtableService.get(missingKey);  // should return null
+        return db.memtableService.get(missingKey);
     }
 }

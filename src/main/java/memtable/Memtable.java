@@ -22,17 +22,17 @@ public class Memtable implements Iterable<Map.Entry<String, String>> {
         sizeBytes += estimateSize(key, value);
     }
 
+    private long estimateSize(String key, String value) {
+        int keyLen = key.getBytes(StandardCharsets.UTF_8).length;
+        int valueLen = value.getBytes(StandardCharsets.UTF_8).length;
+        return 4 + keyLen + 4 + valueLen;
+    }
+
     public long size(){
         return sizeBytes;
     }
 
     public Iterator<Map.Entry<String, String>> iterator() {
         return table.entrySet().iterator();
-    }
-
-    private long estimateSize(String key, String value) {
-        int keyLen = key.getBytes(StandardCharsets.UTF_8).length;
-        int valueLen = value.getBytes(StandardCharsets.UTF_8).length;
-        return 4 + keyLen + 4 + valueLen;
     }
 }

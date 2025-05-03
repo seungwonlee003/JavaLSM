@@ -1,8 +1,9 @@
-package db;
+package core;
 
-import compaction.CompactionService;
+import util.CompactionService;
 import memtable.MemtableService;
 import sstable.SSTableService;
+import util.Manifest;
 
 import java.io.IOException;
 

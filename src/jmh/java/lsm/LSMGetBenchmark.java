@@ -1,7 +1,12 @@
 package lsm;
 
-import db.DB;
+import core.DB;
 import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
+import sstable.SSTableGetBenchmark;
+
 import java.io.IOException;
 import java.util.Base64;
 import java.util.Random;
@@ -15,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 @Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 public class LSMGetBenchmark {
-    @Param({"1000000"})
+    @Param({"1000"})
     public int keyCount;
 
     public byte[][] keys;
@@ -55,5 +60,14 @@ public class LSMGetBenchmark {
 
         String missingKey = Base64.getEncoder().encodeToString(miss);
         return db.get(missingKey);  // should return null
+    }
+
+
+    public static void main(String[] args) throws Exception {
+        Options opt = new OptionsBuilder()
+                .include(SSTableGetBenchmark.class.getSimpleName())
+                .forks(1)
+                .build();
+        new Runner(opt).run();
     }
 }
