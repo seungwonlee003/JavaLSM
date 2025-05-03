@@ -131,4 +131,8 @@ public class MemtableService {
     public void setDisableFlush(boolean disableFlush) {
         this.disableFlush = disableFlush;
     }
+
+    public void close() throws IOException {
+        activeWAL.close();
+    }
 }

@@ -7,7 +7,7 @@ import util.Manifest;
 
 import java.io.IOException;
 
-public class DB {
+public class DB implements AutoCloseable {
     public final MemtableService memtableService;
     public final SSTableService sstableService;
     public final Manifest manifest;
@@ -36,5 +36,11 @@ public class DB {
 
     public void display(){
         manifest.displayManifestFile();
+    }
+
+    @Override
+    public void close() throws Exception {
+        compactionService.stop();
+        memtableService.close();
     }
 }

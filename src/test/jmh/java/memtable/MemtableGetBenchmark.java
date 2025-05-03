@@ -1,4 +1,4 @@
-package lsm;
+package memtable;
 
 import core.DB;
 import org.openjdk.jmh.annotations.*;
