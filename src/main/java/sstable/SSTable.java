@@ -1,7 +1,7 @@
 package sstable;
 
 import memtable.Memtable;
-import util.BloomFilter;
+import util.BloomFilterUtil;
 import util.IOUtils;
 
 import java.io.*;
@@ -10,25 +10,25 @@ import java.util.*;
 
 public class SSTable {
     private final String filePath;
-    public final BloomFilter bloomFilter;
+    public final BloomFilterUtil bloomFilterUtil;
     private final NavigableMap<String, BlockInfo> index;
     private String minKey;
     private String maxKey;
-    private static final int BLOCK_SIZE = 2000;
-    private static final int SSTABLE_SIZE_THRESHOLD = 1024 * 1024;
+    private static final int BLOCK_SIZE = 4000;
+    private static final int SSTABLE_SIZE_THRESHOLD = 2 * 1024 * 1024;
 
     public SSTable(String filePath) throws IOException {
         this.filePath = filePath;
         this.index = new TreeMap<>();
-        this.bloomFilter = new BloomFilter(1000, 3);
+        this.bloomFilterUtil = new BloomFilterUtil(1000, 3);
         this.minKey = null;
         this.maxKey = null;
         init();
     }
 
-    SSTable(String filePath, BloomFilter bloomFilter, NavigableMap<String, BlockInfo> index, String minKey, String maxKey) {
+    SSTable(String filePath, BloomFilterUtil bloomFilterUtil, NavigableMap<String, BlockInfo> index, String minKey, String maxKey) {
         this.filePath = filePath;
-        this.bloomFilter = bloomFilter;
+        this.bloomFilterUtil = bloomFilterUtil;
         this.index = index;
         this.minKey = minKey;
         this.maxKey = maxKey;
@@ -61,7 +61,7 @@ public class SSTable {
                     blockFirstKey = key;
                 }
 
-                bloomFilter.add(key);
+                bloomFilterUtil.add(key);
                 blockLength += recLen;
             }
 
@@ -73,7 +73,7 @@ public class SSTable {
 
     public static SSTable createSSTableFromMemtable(Memtable memtable) throws IOException {
         String filePath = "./data/sstable_" + System.nanoTime() + ".sst";
-        BloomFilter bloomFilter = new BloomFilter(1000, 3);
+        BloomFilterUtil bloomFilterUtil = new BloomFilterUtil(1_000_000, 0.01);
         TreeMap<String, BlockInfo> index = new TreeMap<>();
         String minKey = null;
         String maxKey = null;
@@ -108,7 +108,7 @@ public class SSTable {
                 file.writeInt(valueBytes.length);
                 file.write(valueBytes);
 
-                bloomFilter.add(key);
+                bloomFilterUtil.add(key);
                 if (minKey == null) {
                     minKey = key;
                 }
@@ -122,7 +122,7 @@ public class SSTable {
             }
         }
 
-        return new SSTable(filePath, bloomFilter, index, minKey, maxKey);
+        return new SSTable(filePath, bloomFilterUtil, index, minKey, maxKey);
     }
 
     public static List<SSTable> sortedRun(String dataDir, List<SSTable> tables) throws IOException {
@@ -193,7 +193,7 @@ public class SSTable {
 
     private static SSTable createSSTableFromBuffer(String dataDir, List<Map.Entry<String, String>> buffer) throws IOException {
         String filePath = dataDir + "/sstable_" + System.nanoTime() + ".sst";
-        BloomFilter bloomFilter = new BloomFilter(1000, 3);
+        BloomFilterUtil bloomFilterUtil = new BloomFilterUtil(1000, 3);
         TreeMap<String, BlockInfo> index = new TreeMap<>();
         String minKey = null;
         String maxKey = null;
@@ -226,7 +226,7 @@ public class SSTable {
                 file.writeInt(valueBytes.length);
                 file.write(valueBytes);
 
-                bloomFilter.add(key);
+                bloomFilterUtil.add(key);
                 if (minKey == null) {
                     minKey = key;
                 }
@@ -239,12 +239,11 @@ public class SSTable {
                 index.put(blockFirstKey, new BlockInfo(blockStart, blockLength));
             }
         }
-
-        return new SSTable(filePath, bloomFilter, index, minKey, maxKey);
+        return new SSTable(filePath, bloomFilterUtil, index, minKey, maxKey);
     }
 
     public boolean mightContain(String key) {
-        return bloomFilter.mightContain(key);
+        return bloomFilterUtil.mightContain(key);
     }
 
     public String get(String key) {
@@ -252,7 +251,7 @@ public class SSTable {
             return null;
         }
 
-        if (!bloomFilter.mightContain(key)) {
+        if (!bloomFilterUtil.mightContain(key)) {
             return null;
         }
 
@@ -291,7 +290,6 @@ public class SSTable {
         } catch (IOException e) {
             throw new RuntimeException("Failed to read SSTable: " + filePath, e);
         }
-
         return null;
     }
 

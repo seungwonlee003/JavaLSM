@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 @Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 public class LSMGetBenchmark {
-    @Param({"1000"})
+    @Param({"500000"})
     public int keyCount;
 
     public byte[][] keys;
@@ -31,7 +31,7 @@ public class LSMGetBenchmark {
     public void setup() throws IOException {
         db = new DB();
         keys = new byte[keyCount][16];
-        values = new byte[keyCount][1024];
+        values = new byte[keyCount][100];
 
         Random r = new Random(12345);
         for (int i = 0; i < keyCount; i++) {
@@ -62,11 +62,11 @@ public class LSMGetBenchmark {
         return db.get(missingKey);  // should return null
     }
 
-
     public static void main(String[] args) throws Exception {
         Options opt = new OptionsBuilder()
-                .include(SSTableGetBenchmark.class.getSimpleName())
+                .include(LSMGetBenchmark.class.getSimpleName()) // Fixed: Use correct class name
                 .forks(1)
+                .jvmArgs("-Xmx2g", "-Xms2g", "-XX:+UseG1GC") // 2GB heap, G1GC for better GC
                 .build();
         new Runner(opt).run();
     }

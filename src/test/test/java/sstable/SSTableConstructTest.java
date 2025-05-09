@@ -50,7 +50,7 @@ public class SSTableConstructTest {
         // Create SSTable from the memtable
         SSTable sstable = SSTable.createSSTableFromMemtable(memtable);
 
-        // Verify BloomFilter contains all keys
+        // Verify BloomFilterUtil contains all keys
         for (var e : entries) {
             assertTrue(sstable.mightContain(e.getKey()),
                     "Expected bloom filter to contain key " + e.getKey());

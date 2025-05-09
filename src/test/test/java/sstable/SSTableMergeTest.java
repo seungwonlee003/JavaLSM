@@ -4,7 +4,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import util.BloomFilter;
+import util.BloomFilterUtil;
 import util.IOUtils;
 
 import java.io.IOException;
@@ -94,7 +94,7 @@ public class SSTableMergeTest {
     }
 
     private static SSTable createSSTable(String filePath, List<Map.Entry<String, String>> entries) throws IOException {
-        BloomFilter bloomFilter = new BloomFilter(1000, 3);
+        BloomFilterUtil bloomFilterUtil = new BloomFilterUtil(1000, 3);
         TreeMap<String, BlockInfo> index = new TreeMap<>(); // Default string comparison is fine with padded keys
         String minKey = null;
         String maxKey = null;
@@ -127,7 +127,7 @@ public class SSTableMergeTest {
                 file.writeInt(valueBytes.length);
                 file.write(valueBytes);
 
-                bloomFilter.add(key);
+                bloomFilterUtil.add(key);
                 if (minKey == null) {
                     minKey = key;
                 }
@@ -141,6 +141,6 @@ public class SSTableMergeTest {
             }
         }
 
-        return new SSTable(filePath, bloomFilter, index, minKey, maxKey);
+        return new SSTable(filePath, bloomFilterUtil, index, minKey, maxKey);
     }
 }

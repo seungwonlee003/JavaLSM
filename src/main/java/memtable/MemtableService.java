@@ -16,7 +16,7 @@ public class MemtableService {
     private Memtable activeMemtable;
     private WAL activeWAL;
     private final Queue<Memtable> flushQueue = new ArrayDeque<>();
-    private static final int MEMTABLE_SIZE_THRESHOLD = 1024 * 1024;
+    private static final int MEMTABLE_SIZE_THRESHOLD = 2 * 1024 * 1024;
     private static final String TOMBSTONE = "<TOMBSTONE>";
     private boolean disableFlush = false;
     public final ReadWriteLock rwLock = new ReentrantReadWriteLock();
