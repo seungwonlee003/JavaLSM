@@ -40,7 +40,9 @@ public class DB implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        compactionService.stop();
+        memtableService.flushAllRemaining();
         memtableService.close();
+        compactionService.stop();
+
     }
 }

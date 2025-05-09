@@ -1,5 +1,6 @@
 package memtable;
 
+import sstable.SSTable;
 import util.Manifest;
 import util.WAL;
 
@@ -7,6 +8,7 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -15,29 +17,26 @@ public class MemtableService {
     private final Manifest manifest;
     private Memtable activeMemtable;
     private WAL activeWAL;
-    private final Queue<Memtable> flushQueue = new ArrayDeque<>();
-    private static final int MEMTABLE_SIZE_THRESHOLD = 2 * 1024 * 1024;
+    private final Queue<Memtable> flushQueue = new ConcurrentLinkedQueue<>();
+    private static final int MEMTABLE_SIZE_THRESHOLD = 4 * 1024 * 1024;
     private static final String TOMBSTONE = "<TOMBSTONE>";
     private boolean disableFlush = false;
     public final ReadWriteLock rwLock = new ReentrantReadWriteLock();
 
     public MemtableService(Manifest manifest) throws IOException {
         this.manifest = manifest;
-        // Check if walPaths has WAL memtables
         if (!manifest.walPaths.isEmpty()) {
-            // If walPaths has WALs, add the first WAL in the list to the active memtable
-            // and the remaining WALs to the flush queue in increasing index order
             List<String> walPaths = manifest.walPaths;
+            int lastIndex = walPaths.size() - 1;
             activeMemtable = new Memtable();
-            activeWAL = new WAL(walPaths.get(0));
-            WAL.replay(activeMemtable, walPaths.get(0));
-            for (int i = 1; i < walPaths.size(); i++) {
+            activeWAL = new WAL(walPaths.get(lastIndex));
+            WAL.replay(activeMemtable, walPaths.get(lastIndex));
+            for (int i = 0; i < lastIndex; i++) {
                 Memtable queuedMemtable = new Memtable();
                 WAL.replay(queuedMemtable, walPaths.get(i));
                 flushQueue.add(queuedMemtable);
             }
         } else {
-            // If no WALs exist, initialize an empty active memtable and a new WAL
             activeMemtable = new Memtable();
             activeWAL = new WAL(generateWALFilePath());
             manifest.addWAL(activeWAL.getFilePath());
@@ -71,8 +70,8 @@ public class MemtableService {
                 rotateMemtable();
             }
         } finally {
-            rwLock.writeLock().unlock();
             manifest.getLock().writeLock().unlock();
+            rwLock.writeLock().unlock();
         }
     }
 
@@ -88,8 +87,8 @@ public class MemtableService {
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
-            rwLock.writeLock().unlock();
             manifest.getLock().writeLock().unlock();
+            rwLock.writeLock().unlock();
         }
     }
 
@@ -120,7 +119,7 @@ public class MemtableService {
         }
     }
 
-    public ReadWriteLock getLock(){
+    public ReadWriteLock getLock() {
         return rwLock;
     }
 
@@ -132,7 +131,39 @@ public class MemtableService {
         this.disableFlush = disableFlush;
     }
 
+    public void flushAllRemaining() throws IOException {
+        rwLock.writeLock().lock();
+        try {
+            // Flush active memtable if it has data
+            if (activeMemtable.size() > 0) {
+                rotateMemtable(); // Move active to flushQueue
+            }
+
+            // Flush all memtables in the queue
+            while (!flushQueue.isEmpty()) {
+                Memtable mem = flushQueue.poll();
+                SSTable sstable = SSTable.createSSTableFromMemtable(mem);
+
+                Lock manifestLock = manifest.getLock().writeLock();
+                manifestLock.lock();
+                try {
+                    manifest.addSSTable(0, sstable);
+                    if (!manifest.walPaths.isEmpty()) {
+                        String walToRemove = manifest.walPaths.remove(0);
+                        new WAL(walToRemove).delete();
+                        manifest.persist();
+                    }
+                } finally {
+                    manifestLock.unlock();
+                }
+            }
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
     public void close() throws IOException {
+        flushAllRemaining();
         activeWAL.close();
     }
 }

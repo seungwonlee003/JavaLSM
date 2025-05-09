@@ -39,3 +39,32 @@ Always call the close method when you're done using the DB. This will gracefully
 ```
 db.close();
 ```
+
+## Benchmarks
+### Configuration
+- Key size: 16 bytes 
+- Value size: 100 bytes
+- Number of entries: 100,000 
+- Memtable & SSTable block size: 4 MB (4 * 1024 * 1024 bytes)
+
+### SSTable
+- Negative get
+- Positive get
+
+```
+Benchmark                        (keyCount)   Mode  Cnt       Score        Error  Units
+SSTableGetBenchmark.negativeGet     1000000  thrpt    5  341681.467 ± 241780.713  ops/s
+SSTableGetBenchmark.positiveGet     1000000  thrpt    5   42467.272 ±  30822.569  ops/s
+```
+
+### Tree
+- Negative get
+- Positive get
+- Put
+
+```
+Benchmark                    (keyCount)   Mode  Cnt      Score       Error  Units
+LSMGetBenchmark.negativeGet     1000000  thrpt    5  31531.710 ± 14098.678  ops/s
+LSMGetBenchmark.positiveGet     1000000  thrpt    5  33164.799 ± 12025.540  ops/s
+LSMPutBenchmark.put                      thrpt    5  131728.685 ± 18780.079  ops/s
+```

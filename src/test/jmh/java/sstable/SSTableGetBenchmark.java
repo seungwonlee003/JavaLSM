@@ -1,7 +1,9 @@
 package sstable;
 
 import core.DB;
+import lsm.LSMGetBenchmark;
 import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
@@ -30,7 +32,7 @@ public class SSTableGetBenchmark {
     public void setup() throws IOException, InterruptedException {
         db = new DB();
         keys = new byte[keyCount][16];
-        values = new byte[keyCount][1024];
+        values = new byte[keyCount][100];
 
         Random r = new Random(12345);
         for (int i = 0; i < keyCount; i++) {
@@ -44,21 +46,38 @@ public class SSTableGetBenchmark {
         db.compactionService.forceFlush();
     }
 
-    @Benchmark
-    public String positiveGet() {
-        int idx = ThreadLocalRandom.current().nextInt(keyCount);
-        String keyStr = Base64.getEncoder().encodeToString(keys[idx]);
-        return db.sstableService.get(keyStr);
+    @TearDown
+    public void tearDown() throws Exception {
+        db.close(); // Calls CompactionService.stop()
     }
 
     @Benchmark
-    public String negativeGet() {
+    public void positiveGet(Blackhole bh) {
+        int idx = ThreadLocalRandom.current().nextInt(keyCount);
+        String keyStr = Base64.getEncoder().encodeToString(keys[idx]);
+        String result = db.sstableService.get(keyStr);
+        bh.consume(result);  // prevent JVM from optimizing away
+    }
+
+    @Benchmark
+    public void negativeGet(Blackhole bh) {
         int idx = ThreadLocalRandom.current().nextInt(keyCount);
         byte[] base = keys[idx];
         byte[] miss = base.clone();
         miss[0] ^= 0xFF;
 
         String missingKey = Base64.getEncoder().encodeToString(miss);
-        return db.sstableService.get(missingKey);  // should return null
+        String result = db.sstableService.get(missingKey);  // should return null
+        bh.consume(result);
+    }
+
+    public static void main(String[] args) throws Exception {
+        Options opt = new OptionsBuilder()
+                .include(SSTableGetBenchmark.class.getSimpleName())
+                .forks(1)
+                .jvmArgs("-Xms7g", "-Xmx7g")
+                .build();
+
+        new Runner(opt).run();
     }
 }

@@ -61,14 +61,9 @@ public class Manifest {
     }
 
     public void persist() throws IOException {
-        rwLock.writeLock().lock();
-        try {
-            String newManifestFile = generateNextManifestFileName();
-            persistToFile(newManifestFile);
-            Files.writeString(Paths.get(current), newManifestFile);
-        } finally {
-            rwLock.writeLock().unlock();
-        }
+        String newManifestFile = generateNextManifestFileName();
+        persistToFile(newManifestFile);
+        Files.writeString(Paths.get(current), newManifestFile);
     }
 
     private void persistToFile(String manifestFile) throws IOException {
@@ -110,42 +105,22 @@ public class Manifest {
     }
 
     public void addWAL(String walPath) throws IOException {
-        rwLock.writeLock().lock();
-        try {
-            walPaths.add(walPath);
-            persist();
-        } finally {
-            rwLock.writeLock().unlock();
-        }
+        walPaths.add(walPath);
+        persist();
     }
 
     public void removeWAL(String walPath) throws IOException {
-        rwLock.writeLock().lock();
-        try {
-            walPaths.remove(walPath);
-            persist();
-        } finally {
-            rwLock.writeLock().unlock();
-        }
+        walPaths.remove(walPath);
+        persist();
     }
 
     public void addSSTable(int level, SSTable sstable) throws IOException {
-        rwLock.writeLock().lock();
-        try {
-            levelMap.computeIfAbsent(level, k -> new ArrayList<>()).add(0, sstable);
-            persist();
-        } finally {
-            rwLock.writeLock().unlock();
-        }
+        levelMap.computeIfAbsent(level, k -> new ArrayList<>()).add(0, sstable);
+        persist();
     }
 
     public List<SSTable> getSSTables(int level) {
-        rwLock.readLock().lock();
-        try {
-            return new ArrayList<>(levelMap.getOrDefault(level, new ArrayList<>()));
-        } finally {
-            rwLock.readLock().unlock();
-        }
+        return new ArrayList<>(levelMap.getOrDefault(level, new ArrayList<>()));
     }
 
     public int maxLevel() {
@@ -158,15 +133,10 @@ public class Manifest {
     }
 
     public void replace(int levelToClear, List<SSTable> newTables) throws IOException {
-        rwLock.writeLock().lock();
-        try {
-            levelMap.remove(levelToClear);
-            levelMap.remove(levelToClear + 1);
-            levelMap.computeIfAbsent(levelToClear + 1, k -> new ArrayList<>()).addAll(newTables);
-            persist();
-        } finally {
-            rwLock.writeLock().unlock();
-        }
+        levelMap.remove(levelToClear);
+        levelMap.remove(levelToClear + 1);
+        levelMap.computeIfAbsent(levelToClear + 1, k -> new ArrayList<>()).addAll(newTables);
+        persist();
     }
 
     public void displayManifestFile() {

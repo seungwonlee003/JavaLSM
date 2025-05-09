@@ -2,6 +2,7 @@ package lsm;
 
 import core.DB;
 import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
@@ -20,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 @Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 public class LSMGetBenchmark {
-    @Param({"500000"})
+    @Param({"1000000"})
     public int keyCount;
 
     public byte[][] keys;
@@ -43,30 +44,37 @@ public class LSMGetBenchmark {
         }
     }
 
-    @Benchmark
-    public String positiveGet() {
-        int idx = ThreadLocalRandom.current().nextInt(keyCount);
-        String keyStr = Base64.getEncoder().encodeToString(keys[idx]);
-        return db.get(keyStr);
+    @TearDown
+    public void tearDown() throws Exception {
+        db.close(); // Calls CompactionService.stop()
     }
 
     @Benchmark
-    public String negativeGet() {
+    public void positiveGet(Blackhole bh) {
+        int idx = ThreadLocalRandom.current().nextInt(keyCount);
+        String keyStr = Base64.getEncoder().encodeToString(keys[idx]);
+        String result = db.get(keyStr);
+        bh.consume(result);
+    }
+
+    @Benchmark
+    public void negativeGet(Blackhole bh) {
         // pick an existing key, then perturb so it’s guaranteed *not* in the DB
         int idx = ThreadLocalRandom.current().nextInt(keyCount);
         byte[] base = keys[idx];
         byte[] miss = base.clone();
-        miss[0] ^= 0xFF;  // flip one bit
+        miss[0] ^= 0xFF; // flip one bit
 
         String missingKey = Base64.getEncoder().encodeToString(miss);
-        return db.get(missingKey);  // should return null
+        String result = db.get(missingKey); // should return null
+        bh.consume(result);
     }
 
     public static void main(String[] args) throws Exception {
         Options opt = new OptionsBuilder()
-                .include(LSMGetBenchmark.class.getSimpleName()) // Fixed: Use correct class name
+                .include(LSMGetBenchmark.class.getSimpleName())
                 .forks(1)
-                .jvmArgs("-Xmx2g", "-Xms2g", "-XX:+UseG1GC") // 2GB heap, G1GC for better GC
+                .jvmArgs("-Xmx2g", "-Xms2g", "-XX:+UseG1GC")
                 .build();
         new Runner(opt).run();
     }

@@ -89,21 +89,17 @@ public class CompactionService {
     }
 
     private void updateFlushQueueAndManifest(Memtable mem, SSTable sstable) throws IOException {
-        Lock writeLock = memtableService.getLock().writeLock();
-        writeLock.lock();
+        Lock memtableWriteLock = memtableService.getLock().writeLock();
+        Lock manifestWriteLock = manifest.getLock().writeLock();
+
+        memtableWriteLock.lock();
+        manifestWriteLock.lock();
         try {
             memtableService.removeFlushableMemtable(mem); // Modify flushQueue
-            Lock manifestWriteLock = manifest.getLock().writeLock();
-            manifestWriteLock.lock();
-            try {
-                manifest.addSSTable(0, sstable); // Update manifest
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            } finally {
-                manifestWriteLock.unlock();
-            }
+            manifest.addSSTable(0, sstable); // Update manifest
         } finally {
-            writeLock.unlock();
+            manifestWriteLock.unlock();
+            memtableWriteLock.unlock();
         }
     }
 

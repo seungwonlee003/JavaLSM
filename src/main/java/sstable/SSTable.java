@@ -15,18 +15,18 @@ public class SSTable {
     private String minKey;
     private String maxKey;
     private static final int BLOCK_SIZE = 4000;
-    private static final int SSTABLE_SIZE_THRESHOLD = 2 * 1024 * 1024;
+    private static final int SSTABLE_SIZE_THRESHOLD = 4 * 1024 * 1024;
 
     public SSTable(String filePath) throws IOException {
         this.filePath = filePath;
         this.index = new TreeMap<>();
-        this.bloomFilterUtil = new BloomFilterUtil(1000, 3);
+        this.bloomFilterUtil = new BloomFilterUtil(36000, 0.03);
         this.minKey = null;
         this.maxKey = null;
         init();
     }
 
-    SSTable(String filePath, BloomFilterUtil bloomFilterUtil, NavigableMap<String, BlockInfo> index, String minKey, String maxKey) {
+    public SSTable(String filePath, BloomFilterUtil bloomFilterUtil, NavigableMap<String, BlockInfo> index, String minKey, String maxKey) {
         this.filePath = filePath;
         this.bloomFilterUtil = bloomFilterUtil;
         this.index = index;
@@ -42,7 +42,9 @@ public class SSTable {
 
             while (file.getFilePointer() < file.length()) {
                 long recordStart = file.getFilePointer();
-                String key = IOUtils.readString(file);
+                String key = IOUtils.readString(file); // Reads key length and key bytes
+                int valueLength = file.readInt();     // Read value length (4 bytes)
+                file.skipBytes(valueLength);          // Skip value bytes
                 long recLen = file.getFilePointer() - recordStart;
 
                 if (minKey == null) {
@@ -73,7 +75,7 @@ public class SSTable {
 
     public static SSTable createSSTableFromMemtable(Memtable memtable) throws IOException {
         String filePath = "./data/sstable_" + System.nanoTime() + ".sst";
-        BloomFilterUtil bloomFilterUtil = new BloomFilterUtil(1_000_000, 0.01);
+        BloomFilterUtil bloomFilterUtil = new BloomFilterUtil(36000, 0.03);
         TreeMap<String, BlockInfo> index = new TreeMap<>();
         String minKey = null;
         String maxKey = null;
@@ -193,7 +195,7 @@ public class SSTable {
 
     private static SSTable createSSTableFromBuffer(String dataDir, List<Map.Entry<String, String>> buffer) throws IOException {
         String filePath = dataDir + "/sstable_" + System.nanoTime() + ".sst";
-        BloomFilterUtil bloomFilterUtil = new BloomFilterUtil(1000, 3);
+        BloomFilterUtil bloomFilterUtil = new BloomFilterUtil(36000, 0.03);
         TreeMap<String, BlockInfo> index = new TreeMap<>();
         String minKey = null;
         String maxKey = null;
