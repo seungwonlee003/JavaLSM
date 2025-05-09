@@ -46,6 +46,7 @@ db.close();
 
 ## Benchmarks
 ### Configuration
+Benchmarks are run using JMH on a 2018 15-inch MacBook Pro (2.6 GHz 6-core Intel Core i7).
 - Key size: 16 bytes 
 - Value size: 100 bytes
 - Number of entries: 100,000 
