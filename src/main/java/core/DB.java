@@ -38,11 +38,11 @@ public class DB implements AutoCloseable {
         manifest.displayManifestFile();
     }
 
+    // Flush the active memtable and any remaining memtables in the flush queue to SSTables.
+    // Shut down compaction threads and release resources.
     @Override
     public void close() throws Exception {
-        memtableService.flushAllRemaining();
-        memtableService.close();
         compactionService.stop();
-
+        memtableService.close();
     }
 }

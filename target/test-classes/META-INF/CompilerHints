@@ -10,3 +10,7 @@ inline,lsm/LSMGetBenchmark.tearDown
 inline,lsm/LSMPutBenchmark.put
 inline,lsm/LSMPutBenchmark.setup
 inline,lsm/LSMPutBenchmark.tearDown
+inline,sstable/SSTableGetBenchmark.negativeGet
+inline,sstable/SSTableGetBenchmark.positiveGet
+inline,sstable/SSTableGetBenchmark.setup
+inline,sstable/SSTableGetBenchmark.tearDown

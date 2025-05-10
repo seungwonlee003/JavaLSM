@@ -131,6 +131,7 @@ public class MemtableService {
         this.disableFlush = disableFlush;
     }
 
+    // flushes all remaining memtable in the flushQueue into SSTable
     public void flushAllRemaining() throws IOException {
         rwLock.writeLock().lock();
         try {
@@ -163,7 +164,7 @@ public class MemtableService {
     }
 
     public void close() throws IOException {
-        flushAllRemaining();
         activeWAL.close();
+        flushAllRemaining();
     }
 }

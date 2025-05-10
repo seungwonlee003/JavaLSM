@@ -39,7 +39,8 @@ db.delete(key);
 ```
 
 ### Closing the DB
-Always call the close method when you're done using the DB. This will gracefully shut down background tasks (like compaction) and finalize the WAL file. It takes no parameters.
+Always call the close method when you're done using the DB. This shuts down compaction tasks and flush the active memtable 
+and any remaining memtables in the flush queue to SSTables. It takes no parameters.
 ```
 db.close();
 ```
@@ -49,6 +50,7 @@ db.close();
 Benchmarks are run using JMH on a 2018 15-inch MacBook Pro (2.6 GHz 6-core Intel Core i7).
 - Key size: 16 bytes 
 - Value size: 100 bytes
+- Guava Bloom filter false positive rate: 0.03
 - Number of entries: 100,000 
 - Memtable & SSTable block size: 4 MB (4 * 1024 * 1024 bytes)
 
@@ -71,5 +73,5 @@ SSTableGetBenchmark.positiveGet     1000000  thrpt    5   42467.272 ±  30822.56
 Benchmark                    (keyCount)   Mode  Cnt      Score       Error  Units
 LSMGetBenchmark.negativeGet     1000000  thrpt    5  31531.710 ± 14098.678  ops/s
 LSMGetBenchmark.positiveGet     1000000  thrpt    5  33164.799 ± 12025.540  ops/s
-LSMPutBenchmark.put                      thrpt    5  131728.685 ± 18780.079  ops/s
+LSMPutBenchmark.put                      thrpt    5  141178.930 ± 49577.583  ops/s
 ```

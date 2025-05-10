@@ -33,7 +33,7 @@ public class CompactionService {
                     }
                 },
                 0,
-                1000,
+                500,
                 TimeUnit.MILLISECONDS
         );
 
