@@ -1,9 +1,11 @@
 # JavaLSM: An LSM Tree Based Key-Value Storage in Java
 
 ## Introduction
-This blog post walks through the code.
+[Blog Post](https://dev.to/sashaonion/javalsm-an-lsm-tree-based-key-value-storage-in-java-5ci6)
 
-JavaLSM is an LSM tree based storage engine written in Java. It offers a simple key-value interface and is designed to be used as an embedded storage engine.  
+JavaLSM is an LSM tree based storage engine written in Java. 
+
+It offers a simple key-value interface and is designed to be used as an embedded storage engine.  
 
 ## Features
 1. Simple key-value interface: put(key, value), get(key), delete(key)
